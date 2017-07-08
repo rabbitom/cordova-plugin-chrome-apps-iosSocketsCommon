@@ -305,7 +305,7 @@ enum AGCDAsyncUdpSocketConfig
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface AGCDAsyncUdpSendPacket : NSObject {
+@interface AGCDAsyncUdpSpecialPacket : NSObject {
 @public
 //	uint8_t type;
 	
@@ -319,7 +319,7 @@ enum AGCDAsyncUdpSocketConfig
 
 @end
 
-@implementation AGCDAsyncUdpSendPacket
+@implementation AGCDAsyncUdpSpecialPacket
 
 - (id)init
 {
@@ -3067,7 +3067,7 @@ enum AGCDAsyncUdpSocketConfig
 		
 		// Create special connect packet
 		
-		AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] init];
+		AGCDAsyncUdpSpecialPacket *packet = [[AGCDAsyncUdpSpecialPacket alloc] init];
 		packet->resolveInProgress = YES;
 		
 		// Start asynchronous DNS resolve for host:port on background queue
@@ -3152,7 +3152,7 @@ enum AGCDAsyncUdpSocketConfig
 		NSData *address = [remoteAddr copy];
 		NSArray *addresses = [NSArray arrayWithObject:address];
 		
-		AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] init];
+		AGCDAsyncUdpSpecialPacket *packet = [[AGCDAsyncUdpSpecialPacket alloc] init];
 		packet->addresses = addresses;
 		
 		// Updates flags, add connect packet to send queue, and pump send queue
@@ -3185,11 +3185,11 @@ enum AGCDAsyncUdpSocketConfig
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
 	
-	BOOL sendQueueReady = [currentSend isKindOfClass:[AGCDAsyncUdpSendPacket class]];
+	BOOL sendQueueReady = [currentSend isKindOfClass:[AGCDAsyncUdpSpecialPacket class]];
 	
 	if (sendQueueReady)
 	{
-		AGCDAsyncUdpSendPacket *connectPacket = (AGCDAsyncUdpSendPacket *)currentSend;
+		AGCDAsyncUdpSpecialPacket *connectPacket = (AGCDAsyncUdpSpecialPacket *)currentSend;
 		
 		if (connectPacket->resolveInProgress)
 		{
@@ -3666,7 +3666,7 @@ enum AGCDAsyncUdpSocketConfig
 			currentSend = [sendQueue objectAtIndex:0];
 			[sendQueue removeObjectAtIndex:0];
 			
-			if ([currentSend isKindOfClass:[AGCDAsyncUdpSendPacket class]])
+			if ([currentSend isKindOfClass:[AGCDAsyncUdpSpecialPacket class]])
 			{
 				[self maybeConnect];
 				
