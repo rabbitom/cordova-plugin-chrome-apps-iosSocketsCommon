@@ -100,7 +100,7 @@ static const int logLevel = LOG_LEVEL_VERBOSE;
 #define AutoreleasedBlock(block) ^{ @autoreleasepool { block(); }} 
 
 
-@class GCDAsyncUdpSendPacket;
+@class AGCDAsyncUdpSendPacket;
 
 NSString *const AGCDAsyncUdpSocketException = @"AGCDAsyncUdpSocketException";
 NSString *const AGCDAsyncUdpSocketErrorDomain = @"AGCDAsyncUdpSocketErrorDomain";
@@ -178,7 +178,7 @@ enum AGCDAsyncUdpSocketConfig
 	dispatch_source_t receive6Source;
 	dispatch_source_t sendTimer;
 	
-	GCDAsyncUdpSendPacket *currentSend;
+	AGCDAsyncUdpSendPacket *currentSend;
 	NSMutableArray *sendQueue;
 	
 	unsigned long socket4FDBytesAvailable;
@@ -261,9 +261,9 @@ enum AGCDAsyncUdpSocketConfig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * The GCDAsyncUdpSendPacket encompasses the instructions for a single send/write.
+ * The AGCDAsyncUdpSendPacket encompasses the instructions for a single send/write.
 **/
-@interface GCDAsyncUdpSendPacket : NSObject {
+@interface AGCDAsyncUdpSendPacket : NSObject {
 @public
 	NSData *buffer;
 	NSTimeInterval timeout;
@@ -283,7 +283,7 @@ enum AGCDAsyncUdpSocketConfig
 
 @end
 
-@implementation GCDAsyncUdpSendPacket
+@implementation AGCDAsyncUdpSendPacket
 
 - (id)initWithData:(NSData *)d timeout:(NSTimeInterval)t tag:(long)i
 {
@@ -305,7 +305,7 @@ enum AGCDAsyncUdpSocketConfig
 #pragma mark -
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface GCDAsyncUdpSpecialPacket : NSObject {
+@interface AGCDAsyncUdpSendPacket : NSObject {
 @public
 //	uint8_t type;
 	
@@ -319,7 +319,7 @@ enum AGCDAsyncUdpSocketConfig
 
 @end
 
-@implementation GCDAsyncUdpSpecialPacket
+@implementation AGCDAsyncUdpSendPacket
 
 - (id)init
 {
@@ -3067,7 +3067,7 @@ enum AGCDAsyncUdpSocketConfig
 		
 		// Create special connect packet
 		
-		GCDAsyncUdpSpecialPacket *packet = [[GCDAsyncUdpSpecialPacket alloc] init];
+		AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] init];
 		packet->resolveInProgress = YES;
 		
 		// Start asynchronous DNS resolve for host:port on background queue
@@ -3152,7 +3152,7 @@ enum AGCDAsyncUdpSocketConfig
 		NSData *address = [remoteAddr copy];
 		NSArray *addresses = [NSArray arrayWithObject:address];
 		
-		GCDAsyncUdpSpecialPacket *packet = [[GCDAsyncUdpSpecialPacket alloc] init];
+		AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] init];
 		packet->addresses = addresses;
 		
 		// Updates flags, add connect packet to send queue, and pump send queue
@@ -3185,11 +3185,11 @@ enum AGCDAsyncUdpSocketConfig
 	NSAssert(dispatch_get_specific(IsOnSocketQueueOrTargetQueueKey), @"Must be dispatched on socketQueue");
 	
 	
-	BOOL sendQueueReady = [currentSend isKindOfClass:[GCDAsyncUdpSpecialPacket class]];
+	BOOL sendQueueReady = [currentSend isKindOfClass:[AGCDAsyncUdpSendPacket class]];
 	
 	if (sendQueueReady)
 	{
-		GCDAsyncUdpSpecialPacket *connectPacket = (GCDAsyncUdpSpecialPacket *)currentSend;
+		AGCDAsyncUdpSendPacket *connectPacket = (AGCDAsyncUdpSendPacket *)currentSend;
 		
 		if (connectPacket->resolveInProgress)
 		{
@@ -3526,7 +3526,7 @@ enum AGCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	GCDAsyncUdpSendPacket *packet = [[GCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
+	AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
 	
 	dispatch_async(socketQueue, ^{ @autoreleasepool {
 		
@@ -3550,7 +3550,7 @@ enum AGCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	GCDAsyncUdpSendPacket *packet = [[GCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
+	AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
 	packet->resolveInProgress = YES;
 	
 	[self asyncResolveHost:host port:port withCompletionBlock:^(NSArray *addresses, NSError *error) {
@@ -3590,7 +3590,7 @@ enum AGCDAsyncUdpSocketConfig
 		return;
 	}
 	
-	GCDAsyncUdpSendPacket *packet = [[GCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
+	AGCDAsyncUdpSendPacket *packet = [[AGCDAsyncUdpSendPacket alloc] initWithData:data timeout:timeout tag:tag];
 	packet->addressFamily = [AGCDAsyncUdpSocket familyFromAddress:remoteAddr];
 	packet->address = remoteAddr;
 	
@@ -3666,7 +3666,7 @@ enum AGCDAsyncUdpSocketConfig
 			currentSend = [sendQueue objectAtIndex:0];
 			[sendQueue removeObjectAtIndex:0];
 			
-			if ([currentSend isKindOfClass:[GCDAsyncUdpSpecialPacket class]])
+			if ([currentSend isKindOfClass:[AGCDAsyncUdpSendPacket class]])
 			{
 				[self maybeConnect];
 				
@@ -3807,7 +3807,7 @@ enum AGCDAsyncUdpSocketConfig
 			// Scenario 1 of 3 - Need to asynchronously query sendFilter
 			
 			currentSend->filterInProgress = YES;
-			GCDAsyncUdpSendPacket *sendPacket = currentSend;
+			AGCDAsyncUdpSendPacket *sendPacket = currentSend;
 			
 			dispatch_async(sendFilterQueue, ^{ @autoreleasepool {
 				
